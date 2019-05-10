@@ -18,17 +18,16 @@ Faça o Download dos binários oficiais do etcd a partir do projeto [coreos/etcd
 
 ```
 wget -q --show-progress --https-only --timestamping \
-  "https://github.com/coreos/etcd/releases/download/v3.2.8/etcd-v3.2.8-linux-amd64.tar.gz"
+  "https://github.com/coreos/etcd/releases/download/v3.3.9/etcd-v3.3.9-linux-amd64.tar.gz"
 ```
 
 Extraia e instale o servidor `etcd` e o utilitário de linha de comando `etcdctl`:
 
 ```
-tar -xvf etcd-v3.2.8-linux-amd64.tar.gz
-```
-
-```
-sudo mv etcd-v3.2.8-linux-amd64/etcd* /usr/local/bin/
+{
+  tar -xvf etcd-v3.3.9-linux-amd64.tar.gz
+  sudo mv etcd-v3.3.9-linux-amd64/etcd* /usr/local/bin/
+}
 ```
 
 ### Configure o Servidor etcd
@@ -48,7 +47,7 @@ IP_INTERNO=$(curl -s -H "Metadata-Flavor: Google" \
   http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/ip)
 ```
 
-Cada membro etcd deve ter um nome único dentro de um cluster etcd. Configure o nome do etcd para bater com o _hostname_ a instância computacional corrente: 
+Cada membro etcd deve ter um nome único dentro de um cluster etcd. Configure o nome do etcd para bater com o _hostname_ a instância computacional corrente:
 
 ```
 NOME_ETCD=$(hostname -s)

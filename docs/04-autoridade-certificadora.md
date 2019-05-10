@@ -38,11 +38,11 @@ cat > ca-csr.json <<EOF
   },
   "names": [
     {
-      "C": "US",
-      "L": "Portland",
+      "C": "BR",
+      "L": "Sao Paulo",
       "O": "Kubernetes",
       "OU": "CA",
-      "ST": "Oregon"
+      "ST": "Sao Paulo"
     }
   ]
 }
@@ -81,18 +81,18 @@ cat > admin-csr.json <<EOF
   },
   "names": [
     {
-      "C": "US",
-      "L": "Portland",
+      "C": "BR",
+      "L": "Sao Paulo",
       "O": "system:masters",
-      "OU": "Kubernetes The Hard Way",
-      "ST": "Oregon"
+      "OU": "Kubernetes do Jeito Dificil",
+      "ST": "Sao Paulo"
     }
   ]
 }
 EOF
 ```
 
-Gere o certificado de cliente e a chave privada do `admin`: 
+Gere o certificado de cliente e a chave privada do `admin`:
 
 ```
 cfssl gencert \
@@ -114,10 +114,13 @@ admin.pem
 
 Kubernetes utiliza um [modo de autorização de "propósito especial"] (https://kubernetes.io/docs/admin/authorization/node/) chamado _Node Authorizer_ (Autorizador de Nó), que autoriza especificamente requisições de API feitas pelos [Kubelets](https://kubernetes.io/docs/concepts/overview/components/#kubelet). Para serem autorizados pelo Autorizador de Nó, os Kubelets devem utilizar uma credencial que os identifiquem como parte do grupo `system:nodes`, com um usuário parte de `system:node:<nomeDoNó>`. Nessa seção você irá criar um certificado para cada _worker_ do Kubernetes que atenda aos requisitos do Autorizador de Nós.
 
-Gere um certificado e uma chave privada para cada nó _worker_ do Kubernetes:
+Gere um certificado e uma chave privada para cada nó _worker_ & _controller_ do Kubernetes:
 
 ```
-for instance in worker-0 worker-1 worker-2; do
+for nodetype in worker controller ; do
+  for count in 0 1 2; do
+
+    instance=$nodetype-$count
 cat > ${instance}-csr.json <<EOF
 {
   "CN": "system:node:${instance}",
@@ -127,11 +130,11 @@ cat > ${instance}-csr.json <<EOF
   },
   "names": [
     {
-      "C": "US",
-      "L": "Portland",
+      "C": "BR",
+      "L": "Sao Paulo",
       "O": "system:nodes",
-      "OU": "Kubernetes The Hard Way",
-      "ST": "Oregon"
+      "OU": "Kubernetes do Jeito Dificil",
+      "ST": "Sao Paulo"
     }
   ]
 }
@@ -150,6 +153,8 @@ cfssl gencert \
   -hostname=${instance},${IP_EXTERNO},${IP_INTERNO} \
   -profile=kubernetes \
   ${instance}-csr.json | cfssljson -bare ${instance}
+
+  done
 done
 ```
 
@@ -163,12 +168,57 @@ worker-1.pem
 worker-2-key.pem
 worker-2.pem
 ```
+### Certificado do Cliente Controller Manager
+
+Gere um certificado e uma chave privada para o `kube-controller-manager` :
+
+```
+{
+
+cat > kube-controller-manager-csr.json <<EOF
+{
+  "CN": "system:kube-controller-manager",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "BR",
+      "L": "Sao Paulo",
+      "O": "system:kube-controller-manager",
+      "OU": "Kubernetes do Jeito Dificil",
+      "ST": "Sao Paulo"
+    }
+  ]
+}
+EOF
+
+cfssl gencert \
+  -ca=ca.pem \
+  -ca-key=ca-key.pem \
+  -config=ca-config.json \
+  -profile=kubernetes \
+  kube-controller-manager-csr.json | cfssljson -bare kube-controller-manager
+
+}
+```
+
+Results:
+
+```
+kube-controller-manager-key.pem
+kube-controller-manager.pem
+```
 
 ### O Certificado de Cliente do kube-proxy
 
 Crie a requisição de assinatura do certificado de cliente `kube-proxy`:
 
 ```
+{
+
+
 cat > kube-proxy-csr.json <<EOF
 {
   "CN": "system:kube-proxy",
@@ -178,26 +228,32 @@ cat > kube-proxy-csr.json <<EOF
   },
   "names": [
     {
-      "C": "US",
-      "L": "Portland",
+      "C": "BR",
+      "L": "Sao Paulo",
       "O": "system:node-proxier",
-      "OU": "Kubernetes The Hard Way",
-      "ST": "Oregon"
+      "OU": "Kubernetes do Jeito Dificil",
+      "ST": "Sao Paulo"
     }
   ]
 }
 EOF
+
+}
 ```
 
 Gere o certificado de cliente e a chave privada do `kube-proxy`:
 
 ```
+{
+
 cfssl gencert \
   -ca=ca.pem \
   -ca-key=ca-key.pem \
   -config=ca-config.json \
   -profile=kubernetes \
   kube-proxy-csr.json | cfssljson -bare kube-proxy
+
+}
 ```
 
 Resultados:
@@ -206,6 +262,50 @@ Resultados:
 kube-proxy-key.pem
 kube-proxy.pem
 ```
+
+### Certificado de do kube scheduller
+
+Gere o certificado e a chave privada do `kube-scheduler`:
+
+```
+{
+
+cat > kube-scheduler-csr.json <<EOF
+{
+  "CN": "system:kube-scheduler",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "BR",
+      "L": "Sao Paulo",
+      "O": "system:kube-scheduler",
+      "OU": "Kubernetes do Jeito Dificil",
+      "ST": "Sao Paulo"
+    }
+  ]
+}
+EOF
+
+cfssl gencert \
+  -ca=ca.pem \
+  -ca-key=ca-key.pem \
+  -config=ca-config.json \
+  -profile=kubernetes \
+  kube-scheduler-csr.json | cfssljson -bare kube-scheduler
+
+}
+```
+
+Results:
+
+```
+kube-scheduler-key.pem
+kube-scheduler.pem
+```
+
 
 ### Os Certificados dos Servidores de API Kubernetes
 
@@ -222,6 +322,8 @@ KUBERNETES_PUBLIC_ADDRESS=$(gcloud compute addresses describe kubernetes-the-har
 Crie a requisição de assinatura do certificado do Servidor de API do Kubernetes:
 
 ```
+{
+
 cat > kubernetes-csr.json <<EOF
 {
   "CN": "kubernetes",
@@ -231,15 +333,17 @@ cat > kubernetes-csr.json <<EOF
   },
   "names": [
     {
-      "C": "US",
-      "L": "Portland",
+      "C": "BR",
+      "L": "Sao Paulo",
       "O": "Kubernetes",
-      "OU": "Kubernetes The Hard Way",
-      "ST": "Oregon"
+      "OU": "Kubernetes do Jeito Dificil",
+      "ST": "Sao Paulo"
     }
   ]
 }
 EOF
+
+}
 ```
 
 Gere o certificado e a chave privada do Servidor de API do Kubernetes:
@@ -260,6 +364,51 @@ Resultados:
 kubernetes-key.pem
 kubernetes.pem
 ```
+## The Service Account Key Pair
+
+
+O Kubernetes Controller Manager utiliza um par de chaves para gerar e assinar tokens de conta de serviço, conforme descrito na documentação de [gerenciando service accounts](https://kubernetes.io/docs/admin/service-accounts-admin/).
+
+Gerando o par de chaves para `service-account`:
+
+```
+{
+
+cat > service-account-csr.json <<EOF
+{
+  "CN": "service-accounts",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "BR",
+      "L": "Sao Paulo",
+      "O": "Kubernetes",
+      "OU": "Kubernetes do Jeito Dificil",
+      "ST": "Sao Paulo"
+    }
+  ]
+}
+EOF
+
+cfssl gencert \
+  -ca=ca.pem \
+  -ca-key=ca-key.pem \
+  -config=ca-config.json \
+  -profile=kubernetes \
+  service-account-csr.json | cfssljson -bare service-account
+
+}
+```
+
+Results:
+
+```
+service-account-key.pem
+service-account.pem
+```
 
 ## Distribua os Certificados de Cliente e Servidor
 
@@ -275,10 +424,12 @@ Copie os certificados e chaves privadas apropriadas para cada instância de cont
 
 ```
 for instance in controller-0 controller-1 controller-2; do
-  gcloud compute scp ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem ${instance}:~/
+  gcloud compute scp ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem \
+   ${instance}-key.pem ${instance}.pem \
+   service-account-key.pem service-account.pem ${instance}:~/
 done
 ```
 
-> Os certificados de cliente do `kube-proxy` e do `kubelet` serão utilizados para gerar arquivos de configuração para autenticação de clientes no próximo lab.
+> Os certificados de cliente do `kube-proxy`, `kube-controller-manager`, `kube-scheduler` e do `kubelet` serão utilizados para gerar arquivos de configuração para autenticação de clientes no próximo lab.
 
 Próximo: [Gerando Arquivos de Configuração do Kubernetes para Autenticação](05-arquivos-configuracao-kubernetes.md)

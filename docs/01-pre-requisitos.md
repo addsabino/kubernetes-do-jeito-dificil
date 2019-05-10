@@ -10,7 +10,7 @@ Esse tutorial explora o [Google Cloud Platform](https://cloud.google.com/) simpl
 
 ## SDK do Google Cloud Platform
 
-### Instale a SDK do Google Cloud 
+### Instale a SDK do Google Cloud
 
 Siga a [documentação](https://cloud.google.com/sdk/)(em Inglês) do SDK do Google Cloud para instalar e configurar o utilitário de linha de comando `gcloud`.
 
@@ -33,13 +33,13 @@ gcloud init
 Ou então, defina uma Região Computacional padrão:
 
 ```
-gcloud config set compute/region us-west1
+gcloud config set compute/region southamerica-east1
 ```
 
 Defina uma Zona Computacional padrão:
 
 ```
-gcloud config set compute/zone us-west1-c
+gcloud config set compute/zone southamerica-east1
 ```
 
 > Utilize o comando `gcloud compute zones list` para visualizar regiões e zonas adicionais.
@@ -53,5 +53,8 @@ gcloud config set compute/zone us-west1-c
 ![screenshot do tmux ](imagens/tmux-screenshot.png)
 
 > Habilite o `synchronize-panes`: `ctrl+b` e `shift :`. Então digite `set synchronize-panes on` no prompt. Para desabilitar a sincronização: `set synchronize-panes off`.
+
+<kbd>CTRL</kbd>+<kbd>b</kbd>
+> Para dividir as janelas utilize <kbd>CTRL</kbd>+<kbd>b</kbd> `ctrl+b` seguido de `"`. Para deixar as janelas com o mesmo tamanho, utilize `ctrl+b M 2`
 
 Próximo: [Instalando as Ferramentas Cliente](02-ferramentas-cliente.md)

@@ -20,7 +20,6 @@ Crie a rede VPC customizada `kubernetes-the-hard-way`:
 gcloud compute networks create kubernetes-the-hard-way --subnet-mode custom
 ```
 
-
 Uma [sub-rede](https://cloud.google.com/compute/docs/vpc/#vpc_networks_and_subnets) deve ser provisionada dentro de uma faixa de IP ampla o suficiente para atribuir um endereço de IP privado para cada nó no cluster do Kubernetes.
 
 Crie a sub-rede `kubernetes` na rede VPC `kubernetes-the-hard-way`:
@@ -89,7 +88,7 @@ gcloud compute addresses list --filter="name=('kubernetes-the-hard-way')"
 
 ```
 NAME                     REGION    ADDRESS        STATUS
-kubernetes-the-hard-way  us-west1  XX.XXX.XXX.XX  RESERVED
+kubernetes-the-hard-way  southamerica-east1  XX.XXX.XXX.XX  RESERVED
 ```
 
 ## Instâncias Computacionais
@@ -101,6 +100,7 @@ As instâncias computacionais nesse lab serão provisionadas utilizando o [Ubunt
 Crie três instâncias computacionais que hospedarão o Plano de Controle do Kubernetes:
 
 ```
+zone=(a b c)
 for i in 0 1 2; do
   gcloud compute instances create controller-${i} \
     --async \
@@ -112,11 +112,12 @@ for i in 0 1 2; do
     --private-network-ip 10.240.0.1${i} \
     --scopes compute-rw,storage-ro,service-management,service-control,logging-write,monitoring \
     --subnet kubernetes \
-    --tags kubernetes-the-hard-way,controller
+    --tags kubernetes-the-hard-way,controller \
+    --zone southamerica-east1-${zone[$i]}
 done
 ```
 
-### _Workers_ do Kubernetes 
+### _Workers_ do Kubernetes
 
 Cada instância de _worker_ requer uma alocação de sub-rede de _Pod_ da faixa CIDR do cluster do Kubernetes. A alocação de sub-rede do _Pod_ será utilizada para configurar a rede dos contêineres num exercício posterior. Os metadados da instância `pod-cidr` serão utilizados para expôr as alocações de sub-rede de _Pod_ para instâncias computacionais em tempo de execução.
 
@@ -125,6 +126,7 @@ Cada instância de _worker_ requer uma alocação de sub-rede de _Pod_ da faixa 
 Crie três instâncias computacionais que hospedarão os nós de _worker_ do Kubernetes:
 
 ```
+zone=(a b c)
 for i in 0 1 2; do
   gcloud compute instances create worker-${i} \
     --async \
@@ -137,7 +139,8 @@ for i in 0 1 2; do
     --private-network-ip 10.240.0.2${i} \
     --scopes compute-rw,storage-ro,service-management,service-control,logging-write,monitoring \
     --subnet kubernetes \
-    --tags kubernetes-the-hard-way,worker
+    --tags kubernetes-the-hard-way,worker \
+    --zone southamerica-east1-${zone[$i]}
 done
 ```
 

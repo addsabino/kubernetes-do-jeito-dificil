@@ -23,6 +23,14 @@ chmod +x cfssl cfssljson
 sudo mv cfssl cfssljson /usr/local/bin/
 ```
 
+Alguns usuários podem ter problemas com a instalação dos binários pré empacotados (foi o meu) nesses casos, usem o [Homebrew](https://brew.sh) :
+
+```
+brew install cfssl
+```
+
+
+
 ### Linux
 
 ```
@@ -54,9 +62,9 @@ cfssl version
 > saída
 
 ```
-Version: 1.2.0
+Version: 1.3.3
 Revision: dev
-Runtime: go1.6
+Runtime: go1.12.3
 ```
 
 > O utilitário de linha de comando cfssljson não provê uma maneira de imprimir sua versão.
@@ -68,7 +76,7 @@ O utilitário de linha de comando `kubectl` é utilizado para interagir com o Se
 ### OS X
 
 ```
-curl -o kubectl https://storage.googleapis.com/kubernetes-release/release/v1.10.2/bin/darwin/amd64/kubectl
+curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/darwin/amd64/kubectl
 ```
 
 ```
@@ -79,10 +87,23 @@ chmod +x kubectl
 sudo mv kubectl /usr/local/bin/
 ```
 
+Alternativa com Homebrew
+
+```
+brew install kubernetes-cli
+```
+
+Verificque a instalação
+
+```
+kubectl version
+``
+
+
 ### Linux
 
 ```
-wget https://storage.googleapis.com/kubernetes-release/release/v1.10.2/bin/linux/amd64/kubectl
+curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
 ```
 
 ```
@@ -95,7 +116,7 @@ sudo mv kubectl /usr/local/bin/
 
 ### Verificação
 
-Verifique que a versão 1.10.2 ou superior do  `kubectl` está instalada:
+Verifique que a versão 1.12.0 ou superior do  `kubectl` está instalada:
 
 ```
 kubectl version --client
@@ -104,7 +125,7 @@ kubectl version --client
 > saída
 
 ```
-Client Version: version.Info{Major:"1", Minor:"10", GitVersion:"v1.10.2", GitCommit:"81753b10df112992bf51bbc2c2f85208aad78335", GitTreeState:"clean", BuildDate:"2018-04-27T09:22:21Z", GoVersion:"go1.9.3", Compiler:"gc", Platform:"linux/amd64"}
+Client Version: version.Info{Major:"1", Minor:"12", GitVersion:"v1.12.0", GitCommit:"0ed33881dc4355495f623c6f22e7dd0b7632b7c0", GitTreeState:"clean", BuildDate:"2018-09-27T17:05:32Z", GoVersion:"go1.10.4", Compiler:"gc", Platform:"darwin/amd64"}
 ```
 
 Próximo: [Provisionando Recursos Computacionais](03-recursos-computacionais.md)
