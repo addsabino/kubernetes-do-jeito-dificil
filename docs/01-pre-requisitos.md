@@ -52,9 +52,8 @@ gcloud config set compute/zone southamerica-east1
 
 ![screenshot do tmux ](imagens/tmux-screenshot.png)
 
-> Habilite o `synchronize-panes`: `ctrl+b` e `shift :`. Então digite `set synchronize-panes on` no prompt. Para desabilitar a sincronização: `set synchronize-panes off`.
+> Habilite o `synchronize-panes`: <kbd>CTRL</kbd>+<kbd>b</kbd> e <kbd>SHIFT</kbd>+<kbd>:</kbd>. Então digite `set synchronize-panes on` no prompt. Para desabilitar a sincronização: `set synchronize-panes off`.
 
-<kbd>CTRL</kbd>+<kbd>b</kbd>
-> Para dividir as janelas utilize <kbd>CTRL</kbd>+<kbd>b</kbd> `ctrl+b` seguido de `"`. Para deixar as janelas com o mesmo tamanho, utilize `ctrl+b M 2`
+> Para dividir as janelas utilize <kbd>CTRL</kbd>+<kbd>b</kbd> seguido de `"`. Para deixar as janelas com o mesmo tamanho, utilize <kbd>CTRL</kbd>+<kbd>b</kbd> <kbd>ALT</kbd>+<kbd>2</kbd> no linux e <kbd>ESC</kbd>+<kbd>2</kbd> no MAC
 
 Próximo: [Instalando as Ferramentas Cliente](02-ferramentas-cliente.md)
