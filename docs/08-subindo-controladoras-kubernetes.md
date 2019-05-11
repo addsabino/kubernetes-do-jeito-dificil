@@ -11,12 +11,18 @@ gcloud compute ssh controller-0
 ```
 
 ### Executando comandos com tmux
-[tmux](https://github.com/tmux/tmux/wiki) pode ser utilizado para executar comandos em várias instâncias computacionais ao mesmo tempo. Os laboratórios nesse tutorial podem requerir que os mesmos comandos sejam executados em várias instâncias, nesses casos considere utilizar o tmux e dividir uma janela em vários painéis via `sinchronize-panes` , para acelerar o processo de provisionamento.
-
-
-[tmux](https://github.com/tmux/tmux/wiki) pode ser utilizado para executar comandos em várias instâncias computacionais ao mesmo tempo. Veja o [Executando comandos em paralelo com o tmux](01-prerequisites.md#executando-comandos-em-paralelo-com-o-tmux) Na sessão de prerequisitos
+O [tmux](https://github.com/tmux/tmux/wiki) pode ser utilizado para executar comandos em várias instâncias computacionais ao mesmo tempo. Veja o [Executando comandos em paralelo com o tmux](01-pre-requisitos.md#executando-comandos-em-paralelo-com-o-tmux) Na sessão de prerequisitos
 
 ## Provisione o Plano de Controle do Kubernetes
+
+
+Crie o diretório de configuração do kubernetes:
+
+```
+sudo mkdir -p /etc/kubernetes/config
+
+```
+
 
 ### Faça o Download e Instale os Binários da Controladora do Kubernetes
 
@@ -24,30 +30,31 @@ Faça o download dos binários oficiais:
 
 ```
 wget -q --show-progress --https-only --timestamping \
-  "https://storage.googleapis.com/kubernetes-release/release/v1.8.0/bin/linux/amd64/kube-apiserver" \
-  "https://storage.googleapis.com/kubernetes-release/release/v1.8.0/bin/linux/amd64/kube-controller-manager" \
-  "https://storage.googleapis.com/kubernetes-release/release/v1.8.0/bin/linux/amd64/kube-scheduler" \
-  "https://storage.googleapis.com/kubernetes-release/release/v1.8.0/bin/linux/amd64/kubectl"
+  "https://storage.googleapis.com/kubernetes-release/release/v1.12.0/bin/linux/amd64/kube-apiserver" \
+  "https://storage.googleapis.com/kubernetes-release/release/v1.12.0/bin/linux/amd64/kube-controller-manager" \
+  "https://storage.googleapis.com/kubernetes-release/release/v1.12.0/bin/linux/amd64/kube-scheduler" \
+  "https://storage.googleapis.com/kubernetes-release/release/v1.12.0/bin/linux/amd64/kubectl"
 ```
 
 Instale os binários do Kubernetes:
 
 ```
-chmod +x kube-apiserver kube-controller-manager kube-scheduler kubectl
-```
-
-```
-sudo mv kube-apiserver kube-controller-manager kube-scheduler kubectl /usr/local/bin/
+{
+  chmod +x kube-apiserver kube-controller-manager kube-scheduler kubectl
+  sudo mv kube-apiserver kube-controller-manager kube-scheduler kubectl /usr/local/bin/
+}
 ```
 
 ### Configure o Servidor de API do Kubernetes
 
 ```
-sudo mkdir -p /var/lib/kubernetes/
-```
+{
+  sudo mkdir -p /var/lib/kubernetes/
 
-```
-sudo mv ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem encryption-config.yaml /var/lib/kubernetes/
+  sudo mv ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem \
+    service-account-key.pem service-account.pem \
+    encryption-config.yaml /var/lib/kubernetes/
+}
 ```
 
 O endereço de IP interno da instância será utilizado para anunciar o Servidor de API aos membros do cluster. Recupere o endereço de IP interno da instância computacional corrente:
@@ -60,14 +67,14 @@ INTERNAL_IP=$(curl -s -H "Metadata-Flavor: Google" \
 Crie o arquivo _unit_ `kube-apiserver.service`  do systemd:
 
 ```
-cat > kube-apiserver.service <<EOF
+cat <<EOF | sudo tee /etc/systemd/system/kube-apiserver.service
 [Unit]
 Description=Kubernetes API Server
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
 
 [Service]
 ExecStart=/usr/local/bin/kube-apiserver \\
-  --admission-control=Initializers,NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
+  --enable-admission-plugins=Initializers,NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
   --advertise-address=${INTERNAL_IP} \\
   --allow-privileged=true \\
   --apiserver-count=3 \\
@@ -85,13 +92,12 @@ ExecStart=/usr/local/bin/kube-apiserver \\
   --etcd-servers=https://10.240.0.10:2379,https://10.240.0.11:2379,https://10.240.0.12:2379 \\
   --event-ttl=1h \\
   --experimental-encryption-provider-config=/var/lib/kubernetes/encryption-config.yaml \\
-  --insecure-bind-address=127.0.0.1 \\
   --kubelet-certificate-authority=/var/lib/kubernetes/ca.pem \\
   --kubelet-client-certificate=/var/lib/kubernetes/kubernetes.pem \\
   --kubelet-client-key=/var/lib/kubernetes/kubernetes-key.pem \\
   --kubelet-https=true \\
   --runtime-config=api/all \\
-  --service-account-key-file=/var/lib/kubernetes/ca-key.pem \\
+  --service-account-key-file=/var/lib/kubernetes/service-account.pem \\
   --service-cluster-ip-range=10.32.0.0/24 \\
   --service-node-port-range=30000-32767 \\
   --tls-ca-file=/var/lib/kubernetes/ca.pem \\
@@ -108,10 +114,16 @@ EOF
 
 ### Configure o Gerenciador de Controladora do Kubernetes
 
+Mova o kubeconfig do `kube-controller-manager` para o seu lugar:
+
+```
+sudo mv kube-controller-manager.kubeconfig /var/lib/kubernetes/
+```
+
 Crie o arquivo _unit_ `kube-controller-manager.service` do systemd:
 
 ```
-cat > kube-controller-manager.service <<EOF
+cat <<EOF | sudo tee /etc/systemd/system/kube-controller-manager.service
 [Unit]
 Description=Kubernetes Controller Manager
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
@@ -123,11 +135,12 @@ ExecStart=/usr/local/bin/kube-controller-manager \\
   --cluster-name=kubernetes \\
   --cluster-signing-cert-file=/var/lib/kubernetes/ca.pem \\
   --cluster-signing-key-file=/var/lib/kubernetes/ca-key.pem \\
+  --kubeconfig=/var/lib/kubernetes/kube-controller-manager.kubeconfig \\
   --leader-elect=true \\
-  --master=http://127.0.0.1:8080 \\
   --root-ca-file=/var/lib/kubernetes/ca.pem \\
-  --service-account-private-key-file=/var/lib/kubernetes/ca-key.pem \\
+  --service-account-private-key-file=/var/lib/kubernetes/service-account-key.pem \\
   --service-cluster-ip-range=10.32.0.0/24 \\
+  --use-service-account-credentials=true \\
   --v=2
 Restart=on-failure
 RestartSec=5
@@ -139,18 +152,36 @@ EOF
 
 ### Configure o Agendador do Kubernetes
 
+Mova o kubeconfig do `kube-scheduler` para o seu lugar:
+
+```
+sudo mv kube-scheduler.kubeconfig /var/lib/kubernetes/
+```
+
+Crie o arquivo de configuração `kube-scheduler.yaml`:
+
+```
+cat <<EOF | sudo tee /etc/kubernetes/config/kube-scheduler.yaml
+apiVersion: componentconfig/v1alpha1
+kind: KubeSchedulerConfiguration
+clientConnection:
+  kubeconfig: "/var/lib/kubernetes/kube-scheduler.kubeconfig"
+leaderElection:
+  leaderElect: true
+EOF
+```
+
 Crie o arquivo _unit_ `kube-scheduler.service` do systemd:
 
 ```
-cat > kube-scheduler.service <<EOF
+cat <<EOF | sudo tee /etc/systemd/system/kube-scheduler.service
 [Unit]
 Description=Kubernetes Scheduler
-Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+Documentation=https://github.com/kubernetes/kubernetes
 
 [Service]
 ExecStart=/usr/local/bin/kube-scheduler \\
-  --leader-elect=true \\
-  --master=http://127.0.0.1:8080 \\
+  --config=/etc/kubernetes/config/kube-scheduler.yaml \\
   --v=2
 Restart=on-failure
 RestartSec=5
@@ -160,25 +191,62 @@ WantedBy=multi-user.target
 EOF
 ```
 
-### Start the Controller Services
+### Inicie os serviços da controladora
 
 ```
-sudo mv kube-apiserver.service kube-scheduler.service kube-controller-manager.service /etc/systemd/system/
-```
-
-```
-sudo systemctl daemon-reload
-```
-
-```
-sudo systemctl enable kube-apiserver kube-controller-manager kube-scheduler
-```
-
-```
-sudo systemctl start kube-apiserver kube-controller-manager kube-scheduler
+{
+  sudo systemctl daemon-reload
+  sudo systemctl enable kube-apiserver kube-controller-manager kube-scheduler
+  sudo systemctl start kube-apiserver kube-controller-manager kube-scheduler
+}
 ```
 
 > Aguarde cerca de 10 segundos até o Servidor de API do Kubernetes inicializar completamente.
+
+### Habilite os healthchecks HTTP
+
+Usaremos um [Google Network Load Balancer](https://cloud.google.com/compute/docs/load-balancing/network) para distriuir tráfego entre os três servidores de API e permitir cada um deles ser terminação TLS e validar os certificados de cliente. O network load balancer somente suporte HTTP health checks
+
+ will be used to distribute traffic across the three API servers and allow each API server to terminate TLS connections and validate client certificates. The network load balancer only supports HTTP health checks which means the HTTPS endpoint exposed by the API server cannot be used. As a workaround the nginx webserver can be used to proxy HTTP health checks. In this section nginx will be installed and configured to accept HTTP health checks on port `80` and proxy the connections to the API server on `https://127.0.0.1:6443/healthz`.
+
+> The `/healthz` API server endpoint does not require authentication by default.
+
+Install a basic web server to handle HTTP health checks:
+
+```
+sudo apt-get install -y nginx
+```
+
+```
+cat > kubernetes.default.svc.cluster.local <<EOF
+server {
+  listen      80;
+  server_name kubernetes.default.svc.cluster.local;
+
+  location /healthz {
+     proxy_pass                    https://127.0.0.1:6443/healthz;
+     proxy_ssl_trusted_certificate /var/lib/kubernetes/ca.pem;
+  }
+}
+EOF
+```
+
+```
+{
+  sudo mv kubernetes.default.svc.cluster.local \
+    /etc/nginx/sites-available/kubernetes.default.svc.cluster.local
+
+  sudo ln -s /etc/nginx/sites-available/kubernetes.default.svc.cluster.local /etc/nginx/sites-enabled/
+}
+```
+
+```
+sudo systemctl restart nginx
+```
+
+```
+sudo systemctl enable nginx
+```
 
 ### Verificação
 
