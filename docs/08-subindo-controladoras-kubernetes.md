@@ -10,6 +10,12 @@ Os comandos nesse lab devem ser executados em cada instância de controladora:  
 gcloud compute ssh controller-0
 ```
 
+### Executando comandos com tmux
+[tmux](https://github.com/tmux/tmux/wiki) pode ser utilizado para executar comandos em várias instâncias computacionais ao mesmo tempo. Os laboratórios nesse tutorial podem requerir que os mesmos comandos sejam executados em várias instâncias, nesses casos considere utilizar o tmux e dividir uma janela em vários painéis via `sinchronize-panes` , para acelerar o processo de provisionamento.
+
+
+[tmux](https://github.com/tmux/tmux/wiki) pode ser utilizado para executar comandos em várias instâncias computacionais ao mesmo tempo. Veja o [Executando comandos em paralelo com o tmux](01-prerequisites.md#executando-comandos-em-paralelo-com-o-tmux) Na sessão de prerequisitos
+
 ## Provisione o Plano de Controle do Kubernetes
 
 ### Faça o Download e Instale os Binários da Controladora do Kubernetes

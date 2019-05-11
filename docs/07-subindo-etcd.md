@@ -32,12 +32,13 @@ Extraia e instale o servidor `etcd` e o utilitário de linha de comando `etcdctl
 
 ### Configure o Servidor etcd
 
-```
-sudo mkdir -p /etc/etcd /var/lib/etcd
-```
+Crie o diretório do etcd dados e configuração e copie as chaves privadas para diretório de configuração
 
 ```
-sudo cp ca.pem kubernetes-key.pem kubernetes.pem /etc/etcd/
+{
+  sudo mkdir -p /etc/etcd /var/lib/etcd
+  sudo cp ca.pem kubernetes-key.pem kubernetes.pem /etc/etcd/
+}
 ```
 
 O IP interno da instância será utilizado para servir requisições de cliente e comunicar com cada um dos pares do cluster etcd. Recupere o endereço de IP interno para a instância computacional em uso:
@@ -56,7 +57,7 @@ NOME_ETCD=$(hostname -s)
 Crie o arquivo _unit_ `etcd.service` do systemd:
 
 ```
-cat > etcd.service <<EOF
+cat <<EOF | sudo tee /etc/systemd/system/etcd.service
 [Unit]
 Description=etcd
 Documentation=https://github.com/coreos
@@ -91,19 +92,12 @@ EOF
 ### Inicie o Servidor etcd
 
 ```
-sudo mv etcd.service /etc/systemd/system/
-```
+{
+  sudo systemctl daemon-reload
+  sudo systemctl enable etcd
+  sudo systemctl start etcd
+}
 
-```
-sudo systemctl daemon-reload
-```
-
-```
-sudo systemctl enable etcd
-```
-
-```
-sudo systemctl start etcd
 ```
 
 > Lembre de executar os comandos acima em cada nó de controladora: `controller-0`, `controller-1`, e `controller-2`.
