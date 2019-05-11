@@ -70,11 +70,10 @@ Crie o arquivo _unit_ `kube-apiserver.service`  do systemd:
 cat <<EOF | sudo tee /etc/systemd/system/kube-apiserver.service
 [Unit]
 Description=Kubernetes API Server
-Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+Documentation=https://github.com/kubernetes/kubernetes
 
 [Service]
 ExecStart=/usr/local/bin/kube-apiserver \\
-  --enable-admission-plugins=Initializers,NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
   --advertise-address=${INTERNAL_IP} \\
   --allow-privileged=true \\
   --apiserver-count=3 \\
@@ -85,6 +84,7 @@ ExecStart=/usr/local/bin/kube-apiserver \\
   --authorization-mode=Node,RBAC \\
   --bind-address=0.0.0.0 \\
   --client-ca-file=/var/lib/kubernetes/ca.pem \\
+  --enable-admission-plugins=Initializers,NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
   --enable-swagger-ui=true \\
   --etcd-cafile=/var/lib/kubernetes/ca.pem \\
   --etcd-certfile=/var/lib/kubernetes/kubernetes.pem \\
@@ -100,7 +100,6 @@ ExecStart=/usr/local/bin/kube-apiserver \\
   --service-account-key-file=/var/lib/kubernetes/service-account.pem \\
   --service-cluster-ip-range=10.32.0.0/24 \\
   --service-node-port-range=30000-32767 \\
-  --tls-ca-file=/var/lib/kubernetes/ca.pem \\
   --tls-cert-file=/var/lib/kubernetes/kubernetes.pem \\
   --tls-private-key-file=/var/lib/kubernetes/kubernetes-key.pem \\
   --v=2
@@ -205,20 +204,24 @@ EOF
 
 ### Habilite os healthchecks HTTP
 
-Usaremos um [Google Network Load Balancer](https://cloud.google.com/compute/docs/load-balancing/network) para distriuir tráfego entre os três servidores de API e permitir cada um deles ser terminação TLS e validar os certificados de cliente. O network load balancer somente suporte HTTP health checks
+Usaremos um [Google Network Load Balancer](https://cloud.google.com/compute/docs/load-balancing/network) para distriuir tráfego entre os três servidores de API e permitir cada um deles ser terminação TLS e validar os certificados de cliente. O network load balancer somente suporte a health check HTTP, isso significa que o endpoint HTTPS exposto pela servidor de API não pode ser usado. Como medida paleativa, confiramos um nginx webserver nos nós de controller para servir de proxy http2http. Nessa sessão configuraremos o nginx para fazer proxy do http/80 para o `https://127.0.0.1:6443/healthz`
 
- will be used to distribute traffic across the three API servers and allow each API server to terminate TLS connections and validate client certificates. The network load balancer only supports HTTP health checks which means the HTTPS endpoint exposed by the API server cannot be used. As a workaround the nginx webserver can be used to proxy HTTP health checks. In this section nginx will be installed and configured to accept HTTP health checks on port `80` and proxy the connections to the API server on `https://127.0.0.1:6443/healthz`.
 
-> The `/healthz` API server endpoint does not require authentication by default.
 
-Install a basic web server to handle HTTP health checks:
+> O ednpoin de API `/healthz` Não requer autenticação por padrão
+
+Instale um webserver básico para tratar os health checks:
+
 
 ```
 sudo apt-get install -y nginx
 ```
 
+
+Crie uma config de proxy para o api local do node
+
 ```
-cat > kubernetes.default.svc.cluster.local <<EOF
+cat  <<EOF | sudo tee /etc/nginx/sites-available/kubernetes.default.svc.cluster.local
 server {
   listen      80;
   server_name kubernetes.default.svc.cluster.local;
@@ -231,27 +234,20 @@ server {
 EOF
 ```
 
+Habilite a configuraão no nginx
+
 ```
 {
-  sudo mv kubernetes.default.svc.cluster.local \
-    /etc/nginx/sites-available/kubernetes.default.svc.cluster.local
-
   sudo ln -s /etc/nginx/sites-available/kubernetes.default.svc.cluster.local /etc/nginx/sites-enabled/
+  sudo systemctl restart nginx
+  sudo systemctl enable nginx
 }
-```
-
-```
-sudo systemctl restart nginx
-```
-
-```
-sudo systemctl enable nginx
 ```
 
 ### Verificação
 
 ```
-kubectl get componentstatuses
+kubectl get componentstatuses --kubeconfig admin.kubeconfig
 ```
 
 ```
@@ -261,6 +257,23 @@ scheduler            Healthy   ok
 etcd-2               Healthy   {"health": "true"}
 etcd-0               Healthy   {"health": "true"}
 etcd-1               Healthy   {"health": "true"}
+```
+
+Teste o proxy HTTP para health check:
+
+```
+curl -H "Host: kubernetes.default.svc.cluster.local" -i http://127.0.0.1/healthz
+```
+
+```
+HTTP/1.1 200 OK
+Server: nginx/1.14.0 (Ubuntu)
+Date: Sun, 30 Sep 2018 17:44:24 GMT
+Content-Type: text/plain; charset=utf-8
+Content-Length: 2
+Connection: keep-alive
+
+ok
 ```
 
 > Lembre-se de executar os comandos acima em cada nó da controladora: `controller-0`, `controller-1` e `controller-2`.
@@ -332,27 +345,40 @@ Nessa seção você provisionará um balanceador de carga externo para fazer fre
 
 Crie os recursos de rede do balanceador de carga externo:
 
-```
-gcloud compute target-pools create kubernetes-target-pool
-```
+### Provisionando o balanceador
+
 
 ```
-gcloud compute target-pools add-instances kubernetes-target-pool \
-  --instances controller-0,controller-1,controller-2
-```
+{
+  ENDERECO_PUBLICO_KUBERNETES=$(gcloud compute addresses describe kubernetes-the-hard-way \
+    --region $(gcloud config get-value compute/region) \
+    --format 'value(address)')
 
-```
-ENDERECO_PUBLICO_KUBERNETES=$(gcloud compute addresses describe kubernetes-the-hard-way \
-  --region $(gcloud config get-value compute/region) \
-  --format 'value(name)')
-```
+  gcloud compute http-health-checks create kubernetes \
+    --description "Kubernetes Health Check" \
+    --host "kubernetes.default.svc.cluster.local" \
+    --request-path "/healthz"
 
-```
-gcloud compute forwarding-rules create kubernetes-forwarding-rule \
-  --address ${ENDERECO_PUBLICO_KUBERNETES} \
-  --ports 6443 \
-  --region $(gcloud config get-value compute/region) \
-  --target-pool kubernetes-target-pool
+  gcloud compute firewall-rules create kubernetes-the-hard-way-allow-health-check \
+    --network kubernetes-the-hard-way \
+    --source-ranges 209.85.152.0/22,209.85.204.0/22,35.191.0.0/16 \
+    --allow tcp
+
+  gcloud compute target-pools create kubernetes-target-pool \
+    --http-health-check kubernetes
+
+  zone=( a b c)
+  for enum in 0 1 2 ; do
+    gcloud compute target-pools add-instances kubernetes-target-pool \
+    --instances controller-$enum  --instances-zone=southamerica-east1-${zone[$enum]}
+  done
+
+  gcloud compute forwarding-rules create kubernetes-forwarding-rule \
+    --address ${ENDERECO_PUBLICO_KUBERNETES} \
+    --ports 6443 \
+    --region $(gcloud config get-value compute/region) \
+    --target-pool kubernetes-target-pool
+}
 ```
 
 ### Verificação
@@ -376,12 +402,12 @@ curl --cacert ca.pem https://${ENDERECO_PUBLICO_KUBERNETES}:6443/version
 ```
 {
   "major": "1",
-  "minor": "8",
-  "gitVersion": "v1.8.0",
-  "gitCommit": "6e937839ac04a38cac63e6a7a306c5d035fe7b0a",
+  "minor": "12",
+  "gitVersion": "v1.12.0",
+  "gitCommit": "0ed33881dc4355495f623c6f22e7dd0b7632b7c0",
   "gitTreeState": "clean",
-  "buildDate": "2017-09-28T22:46:41Z",
-  "goVersion": "go1.8.3",
+  "buildDate": "2018-09-27T16:55:41Z",
+  "goVersion": "go1.10.4",
   "compiler": "gc",
   "platform": "linux/amd64"
 }
