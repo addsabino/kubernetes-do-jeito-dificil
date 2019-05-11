@@ -70,13 +70,10 @@ Instale os binários do _worker_:
 
 ```
 {
-  sudo mv runsc-50c283b9f56bb7200938d9e207355f05f79f0d17 runsc
-  sudo mv runc.amd64 runc
-  chmod +x kubectl kube-proxy kubelet runc runsc
-  sudo mv kubectl kube-proxy kubelet runc runsc /usr/local/bin/
+  chmod +x kubectl kube-proxy kubelet
+  sudo mv kubectl kube-proxy kubelet /usr/local/bin/
   sudo tar -xvf crictl-v1.12.0-linux-amd64.tar.gz -C /usr/local/bin/
   sudo tar -xvf cni-plugins-amd64-v0.6.0.tgz -C /opt/cni/bin/
-  sudo tar -xvf containerd-1.2.0-rc.0.linux-amd64.tar.gz -C /
 }
 ```
 
