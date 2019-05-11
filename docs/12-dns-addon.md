@@ -1,13 +1,13 @@
 # Implantando o Add-on de DNS do Cluster
 
-Nesse lab você irá implantar o [Add-on de DNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/) que provê descoberta de serviços baseadas em DNS para aplicações executando dentro do cluster do Kubernetes.
+Nesse lab você irá implantar o [Add-on de DNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/) que provê descoberta de serviços baseadas em DNS, fornecido pelo [CoreDNS](https://coredns.io/), para aplicações executando dentro do cluster do Kubernetes.
 
 ## O Add-on de DNS do Cluster
 
-Implante o add-on de cluster `kube-dns`:
+Implante o add-on de cluster `coredns`:
 
 ```
-kubectl create -f https://storage.googleapis.com/kubernetes-the-hard-way/kube-dns.yaml
+kubectl apply -f https://storage.googleapis.com/kubernetes-the-hard-way/coredns.yaml
 ```
 
 > saída
@@ -28,8 +28,9 @@ kubectl get pods -l k8s-app=kube-dns -n kube-system
 > saída
 
 ```
-NAME                        READY     STATUS    RESTARTS   AGE
-kube-dns-3097350089-gq015   3/3       Running   0          20s
+NAME                       READY   STATUS    RESTARTS   AGE
+coredns-699f8ddd77-j7mhr   1/1     Running   0          24s
+coredns-699f8ddd77-xtc7b   1/1     Running   0          24s
 ```
 
 ## Verificação

@@ -24,7 +24,6 @@ Instale as dependências de SO:
   sudo apt-get update
   sudo apt-get -y install socat conntrack ipset
 
-  curl -fsSL https://get.docker.com/ | sudo sh
 
 # Necessário para o roteamento de pods funcionar
 cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
@@ -48,7 +47,10 @@ EOF
 ```
 wget -q --show-progress --https-only --timestamping \
   https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.12.0/crictl-v1.12.0-linux-amd64.tar.gz \
+  https://storage.googleapis.com/kubernetes-the-hard-way/runsc-50c283b9f56bb7200938d9e207355f05f79f0d17 \
+  https://github.com/opencontainers/runc/releases/download/v1.0.0-rc5/runc.amd64 \
   https://github.com/containernetworking/plugins/releases/download/v0.6.0/cni-plugins-amd64-v0.6.0.tgz \
+  https://github.com/containerd/containerd/releases/download/v1.2.0-rc.0/containerd-1.2.0-rc.0.linux-amd64.tar.gz \
   https://storage.googleapis.com/kubernetes-release/release/v1.12.0/bin/linux/amd64/kubectl \
   https://storage.googleapis.com/kubernetes-release/release/v1.12.0/bin/linux/amd64/kube-proxy \
   https://storage.googleapis.com/kubernetes-release/release/v1.12.0/bin/linux/amd64/kubelet
@@ -70,10 +72,13 @@ Instale os binários do _worker_:
 
 ```
 {
-  chmod +x kubectl kube-proxy kubelet
-  sudo mv kubectl kube-proxy kubelet /usr/local/bin/
+  sudo mv runsc-50c283b9f56bb7200938d9e207355f05f79f0d17 runsc
+  sudo mv runc.amd64 runc
+  chmod +x kubectl kube-proxy kubelet runc runsc
+  sudo mv kubectl kube-proxy kubelet runc runsc /usr/local/bin/
   sudo tar -xvf crictl-v1.12.0-linux-amd64.tar.gz -C /usr/local/bin/
   sudo tar -xvf cni-plugins-amd64-v0.6.0.tgz -C /opt/cni/bin/
+  sudo tar -xvf containerd-1.2.0-rc.0.linux-amd64.tar.gz -C /
 }
 ```
 
@@ -118,10 +123,7 @@ cat <<EOF | sudo tee /etc/cni/net.d/99-loopback.conf
 }
 EOF
 ```
-
-# Configure o containerd
-
-### Configure containerd
+### Configure o containerd
 
 Crie o arquivo de configuração do `containerd`:
 
@@ -149,7 +151,9 @@ cat << EOF | sudo tee /etc/containerd/config.toml
 EOF
 ```
 
-Crie o arquivo de systemd unit `containerd.service`:
+> Workloads não confiáveis executam com o runtime gVisor (runsc).
+
+Creie o unit systemd `containerd.service` :
 
 ```
 cat <<EOF | sudo tee /etc/systemd/system/containerd.service
@@ -216,7 +220,7 @@ EOF
 Crie o arquivo _unit_ `kubelet.service` do systemd:
 
 ```
-cat > kubelet.service <<EOF
+cat <<EOF | sudo tee /etc/systemd/system/kubelet.service
 [Unit]
 Description=Kubernetes Kubelet
 Documentation=https://github.com/kubernetes/kubernetes
@@ -286,8 +290,8 @@ EOF
 ```
 {
   sudo systemctl daemon-reload
-  sudo systemctl enable containerd kubelet kube-proxy
-  sudo systemctl start containerd kubelet kube-proxy
+  sudo systemctl enable docker kubelet kube-proxy
+  sudo systemctl start docker kubelet kube-proxy
 }
 ```
 
@@ -312,10 +316,10 @@ kubectl get nodes
 > saída
 
 ```
-NAME       STATUS    ROLES     AGE       VERSION
-worker-0   Ready     <none>    1m        v1.8.0
-worker-1   Ready     <none>    1m        v1.8.0
-worker-2   Ready     <none>    1m        v1.8.0
+NAME       STATUS   ROLES    AGE   VERSION
+worker-0   Ready    <none>   75s   v1.12.0
+worker-1   Ready    <none>   75s   v1.12.0
+worker-2   Ready    <none>   75s   v1.12.0
 ```
 
 Próximo: [Configurando o kubectl para Acesso Remoto](10-configurando-kubectl.md)

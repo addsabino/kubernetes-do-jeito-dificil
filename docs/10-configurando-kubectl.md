@@ -8,37 +8,29 @@ Nesse lab vorê irá gerar um arquivo kubeconfig para o utilitário de linha de 
 
 Cada kubeconfig requer um Servidor de API do Kubernetes para se conectar. Para suportar alta disponibilidade, o endereço de IP atribuído ao balanceador de carga externo fazendo frente aos Servidores de API do Kubernetes será utilizado.
 
-Recupere o endereço de IP estático do `kubernetes-the-hard-way`:
+> Execute os comandos no diretório usado para gerar os certificados
 
 ```
-ENDERECO_PUBLICO_KUBERNETES=$(gcloud compute addresses describe kubernetes-the-hard-way \
-  --region $(gcloud config get-value compute/region) \
-  --format 'value(address)')
-```
+{
+  KUBERNETES_PUBLIC_ADDRESS=$(gcloud compute addresses describe kubernetes-the-hard-way \
+    --region $(gcloud config get-value compute/region) \
+    --format 'value(address)')
 
-Crie um arquivo kubeconfig apto para autenticar como o usuário `admin`:
+  kubectl config set-cluster kubernetes-the-hard-way \
+    --certificate-authority=ca.pem \
+    --embed-certs=true \
+    --server=https://${KUBERNETES_PUBLIC_ADDRESS}:6443
 
-```
-kubectl config set-cluster kubernetes-the-hard-way \
-  --certificate-authority=ca.pem \
-  --embed-certs=true \
-  --server=https://${ENDERECO_PUBLICO_KUBERNETES}:6443
-```
+  kubectl config set-credentials admin \
+    --client-certificate=admin.pem \
+    --client-key=admin-key.pem
 
-```
-kubectl config set-credentials admin \
-  --client-certificate=admin.pem \
-  --client-key=admin-key.pem
-```
+  kubectl config set-context kubernetes-the-hard-way \
+    --cluster=kubernetes-the-hard-way \
+    --user=admin
 
-```
-kubectl config set-context kubernetes-the-hard-way \
-  --cluster=kubernetes-the-hard-way \
-  --user=admin
-```
-
-```
-kubectl config use-context kubernetes-the-hard-way
+  kubectl config use-context kubernetes-the-hard-way
+}
 ```
 
 ## Verificação
