@@ -39,7 +39,7 @@ gcloud config set compute/region southamerica-east1
 Defina uma Zona Computacional padrão:
 
 ```
-gcloud config set compute/zone southamerica-east1
+gcloud config set compute/zone southamerica-east1-a
 ```
 
 > Utilize o comando `gcloud compute zones list` para visualizar regiões e zonas adicionais.

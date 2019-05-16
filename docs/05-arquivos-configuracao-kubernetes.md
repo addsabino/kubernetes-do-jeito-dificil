@@ -98,7 +98,7 @@ Resultados:
 kube-proxy.kubeconfig
 ```
 
-### The kube-controller-manager Kubernetes Configuration File
+### Arquivo de configuração do kube-controller-manager
 
 Gere um arquivo kubeconfig para o serviço `kube-controller-manager` :
 
@@ -132,7 +132,7 @@ kube-controller-manager.kubeconfig
 ```
 
 
-### The kube-scheduler Kubernetes Configuration File
+### Arquivo de configuração do kube-scheduler
 
 Gere um arquivo kubeconfig par a o serviço `kube-scheduler`:
 
@@ -160,7 +160,7 @@ Gere um arquivo kubeconfig par a o serviço `kube-scheduler`:
 
 ```
 
-Results:
+Resultados:
 
 ```
 kube-scheduler.kubeconfig

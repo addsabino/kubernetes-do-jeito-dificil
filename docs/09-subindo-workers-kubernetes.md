@@ -26,7 +26,7 @@ Instale as dependências de SO:
 
 
 # Necessário para o roteamento de pods funcionar
-cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
+  cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
 br_netfilter
 ip_vs_rr
 ip_vs_wrr
@@ -34,9 +34,6 @@ ip_vs_sh
 nf_conntrack_ipv4
 ip_vs
 EOF
-
-
-
 }
 ```
 
@@ -46,14 +43,14 @@ EOF
 
 ```
 wget -q --show-progress --https-only --timestamping \
-  https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.12.0/crictl-v1.12.0-linux-amd64.tar.gz \
+  https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.12.8/crictl-v1.12.0-linux-amd64.tar.gz \
   https://storage.googleapis.com/kubernetes-the-hard-way/runsc-50c283b9f56bb7200938d9e207355f05f79f0d17 \
   https://github.com/opencontainers/runc/releases/download/v1.0.0-rc5/runc.amd64 \
   https://github.com/containernetworking/plugins/releases/download/v0.6.0/cni-plugins-amd64-v0.6.0.tgz \
   https://github.com/containerd/containerd/releases/download/v1.2.0-rc.0/containerd-1.2.0-rc.0.linux-amd64.tar.gz \
-  https://storage.googleapis.com/kubernetes-release/release/v1.12.0/bin/linux/amd64/kubectl \
-  https://storage.googleapis.com/kubernetes-release/release/v1.12.0/bin/linux/amd64/kube-proxy \
-  https://storage.googleapis.com/kubernetes-release/release/v1.12.0/bin/linux/amd64/kubelet
+  https://storage.googleapis.com/kubernetes-release/release/v1.12.8/bin/linux/amd64/kubectl \
+  https://storage.googleapis.com/kubernetes-release/release/v1.12.8/bin/linux/amd64/kube-proxy \
+  https://storage.googleapis.com/kubernetes-release/release/v1.12.8/bin/linux/amd64/kubelet
 ```
 
 Crie os diretórios de instalação:

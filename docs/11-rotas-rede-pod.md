@@ -13,18 +13,29 @@ Nessa seção você irá coletar a informação necessária para criar rotas na 
 Imprima o endereço de IP interno e a faixa de CIDR do Pod para cada instância _worker_:
 
 ```
-for instance in worker-0 worker-1 worker-2; do
+function routes(){
+zone=(a b c)
+for enum in 0 1 2; do
+  for type in worker controller ; do
+  instance=$type-$enum
   gcloud compute instances describe ${instance} \
-    --format 'value[separator=" "](networkInterfaces[0].networkIP,metadata.items[0].value)'
+    --format 'value[separator=" "](networkInterfaces[0].networkIP,metadata.items[0].value)'\
+    --zone southamerica-east1-${zone[$enum]}
 done
+done
+}
+routes
 ```
 
 > saída
 
 ```
 10.240.0.20 10.200.0.0/24
+10.240.0.10 10.200.201.0/24
 10.240.0.21 10.200.1.0/24
+10.240.0.11 10.200.202.0/24
 10.240.0.22 10.200.2.0/24
+10.240.0.12 10.200.203.0/24
 ```
 
 ## Rotas
@@ -32,11 +43,12 @@ done
 Crie rotas de rede para cada instância _worker_:
 
 ```
-for i in 0 1 2; do
-  gcloud compute routes create kubernetes-route-10-200-${i}-0-24 \
+routes |while read host route  ; do
+  nome=$( echo $route|sed -e 's/\./-/g;s/\//-/')
+  gcloud compute routes create kubernetes-route-$nome \
     --network kubernetes-the-hard-way \
-    --next-hop-address 10.240.0.2${i} \
-    --destination-range 10.200.${i}.0/24
+    --next-hop-address $host\
+    --destination-range $route
 done
 ```
 

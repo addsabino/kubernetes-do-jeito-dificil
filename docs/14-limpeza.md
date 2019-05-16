@@ -7,9 +7,15 @@ Nesse lab você irá deletar os recursos computacionais criados durante esse tut
 Delete a controladora e a instância computacional dos _workers_:
 
 ```
-gcloud -q compute instances delete \
-  controller-0 controller-1 controller-2 \
-  worker-0 worker-1 worker-2
+zone=(a b c)
+for enum in 0 1 2; do
+  instance=worker-${enum}
+  gcloud -q compute instances delete  $instance \
+    --zone southamerica-east1-${zone[$enum]}
+  instance=controller-${enum}
+  gcloud -q compute instances delete  $instance \
+    --zone southamerica-east1-${zone[$enum]}
+done
 ```
 
 ## Rede

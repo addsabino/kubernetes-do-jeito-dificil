@@ -62,9 +62,10 @@ cfssl version
 > saída
 
 ```
-Version: 1.3.3
+Verificando
+Version: 1.2.0
 Revision: dev
-Runtime: go1.12.3
+Runtime: go1.6
 ```
 
 > O utilitário de linha de comando cfssljson não provê uma maneira de imprimir sua versão.
