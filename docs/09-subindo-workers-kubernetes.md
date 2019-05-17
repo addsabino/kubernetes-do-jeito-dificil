@@ -51,6 +51,7 @@ wget -q --show-progress --https-only --timestamping \
   https://storage.googleapis.com/kubernetes-release/release/v1.12.8/bin/linux/amd64/kubectl \
   https://storage.googleapis.com/kubernetes-release/release/v1.12.8/bin/linux/amd64/kube-proxy \
   https://storage.googleapis.com/kubernetes-release/release/v1.12.8/bin/linux/amd64/kubelet
+
 ```
 
 Crie os diretórios de instalação:
